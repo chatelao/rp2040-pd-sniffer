@@ -3,9 +3,9 @@ name: Build RP2040-PD-Sniffer
 # 1. Trigger this workflow on every push or pull request
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "4b5b" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "4b5b" ]
 
 jobs:
   build:
