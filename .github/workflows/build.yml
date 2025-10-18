@@ -1,0 +1,55 @@
+name: Build RP2040-PD-Sniffer
+
+# 1. Trigger this workflow on every push or pull request
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 2. Check out your repository code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 3. Install the required build tools
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib build-essential
+
+      # 4. Clone the Pico SDK
+      - name: Clone Pico SDK
+        run: |
+          git clone --depth 1 https://github.com/raspberrypi/pico-sdk.git ${{ github.workspace }}/pico-sdk
+          cd ${{ github.workspace }}/pico-sdk
+          git submodule update --init
+
+      # 5. Configure the CMake build
+      - name: Create build directory and run CMake
+        run: |
+          mkdir ${{ github.workspace }}/build
+          cd ${{ github.workspace }}/build
+          export PICO_SDK_PATH=${{ github.workspace }}/pico-sdk
+          
+          # --- THIS IS THE CRITICAL LINE ---
+          # We specify the board as 'seeed_xiao_rp2040'. 
+          # If you have a different Seeed board, change this name.
+          cmake -DPICO_BOARD=seeed_xiao_rp2040 ${{ github.workspace }}
+
+      # 6. Run the build
+      - name: Build firmware
+        run: |
+          cd ${{ github.workspace }}/build
+          make -j$(nproc)
+
+      # 7. Upload the .uf2 file as an artifact
+      - name: Upload .uf2 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware
+          path: ${{ github.workspace }}/build/pico_pd_sniffer.uf2
