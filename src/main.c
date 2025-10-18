@@ -12,12 +12,11 @@
 #define CC_PIN 28
 
 // System clock speed (120 MHz)
-// Note: We use clock_get_hz(clk_sys) for accuracy
-// but define this for the divider calculation.
-#define SYS_CLK_KHZ 120_000
+// Note: We use clock_get_hz(clk_sys) for accuracy.
+// The SYS_CLK_KHZ macro is defined in the SDK.
 
 // USB-PD BMC base clock rate (300 kHz)
-#define PD_CLK_HZ 300_000
+#define PD_CLK_HZ 300000
 
 // Oversampling rate (8x)
 #define OVERSAMPLE_RATE 8
@@ -136,31 +135,36 @@ void process_decoded_bit(bool bit_val) {
     // State machine variables
     static decoder_state_t state = STATE_IDLE;
     static uint64_t shift_reg = 0;
-    static int bit_count = 0;
+    static int idle_bit_count = 0;
+    static int packet_bit_count = 0;
     static pd_packet_t current_packet;
     static int data_obj_count = 0;
 
     // A bit '1' resets our idle detection
     if (bit_val) {
-        bit_count = 0;
+        idle_bit_count = 0;
     } else {
-        bit_count++;
+        idle_bit_count++;
     }
 
     // After ~1.2ms of idle (no transitions), reset to a known state
-    if (bit_count > (PD_CLK_HZ / 1000) * 1.2) {
+    if (idle_bit_count > (PD_CLK_HZ / 1000) * 1.2) {
         state = STATE_IDLE;
     }
 
     // Shift the new bit into our shift register
     shift_reg = (shift_reg << 1) | bit_val;
 
+    if (state != STATE_IDLE) {
+        packet_bit_count++;
+    }
+
     switch (state) {
         case STATE_IDLE:
             // Look for the 64-bit preamble
             if ((shift_reg & 0xFFFFFFFFFFFFFFFF) == 0xAAAAAAAAAAAAAAA9) {
                 state = STATE_PREAMBLE;
-                bit_count = 0;
+                packet_bit_count = 0;
             }
             break;
 
@@ -169,7 +173,7 @@ void process_decoded_bit(bool bit_val) {
             // SOP is composed of 4 K-Codes
             if ((shift_reg & 0xFFFFF) == ((uint32_t)K_SYNC1 << 15 | (uint32_t)K_SYNC1 << 10 | (uint32_t)K_SYNC1 << 5 | K_SYNC2)) {
                 state = STATE_SOP;
-                bit_count = 0;
+                packet_bit_count = 0;
                 current_packet.valid = false;
                 data_obj_count = 0;
             }
@@ -178,13 +182,13 @@ void process_decoded_bit(bool bit_val) {
         case STATE_SOP:
             // SOP is consumed, now we're at the start of the message
             state = STATE_HEADER;
-            bit_count = 0;
+            packet_bit_count = 0;
             break;
 
         case STATE_HEADER:
             // Every 5 bits, decode a symbol
-            if (bit_count > 0 && (bit_count % 5 == 0)) {
-                uint8_t symbol = (shift_reg >> (bit_count - 5)) & 0x1F;
+            if (packet_bit_count > 0 && (packet_bit_count % 5 == 0)) {
+                uint8_t symbol = (shift_reg >> (packet_bit_count - 5)) & 0x1F;
                 uint8_t nibble = DECODE_4B5B[symbol];
 
                 if (nibble == 0xFF) { // Invalid symbol
@@ -195,7 +199,7 @@ void process_decoded_bit(bool bit_val) {
                 current_packet.header = (current_packet.header << 4) | nibble;
 
                 // After 4 nibbles (20 bits), we have the full header
-                if (bit_count == 20) {
+                if (packet_bit_count == 20) {
                     current_packet.num_data_objs = (current_packet.header >> 12) & 0x7;
                     if (current_packet.num_data_objs == 0) {
                         state = STATE_CRC;
@@ -203,15 +207,15 @@ void process_decoded_bit(bool bit_val) {
                         state = STATE_DATA;
                     }
                     data_obj_count = 0;
-                    bit_count = 0;
+                    packet_bit_count = 0;
                 }
             }
             break;
 
         case STATE_DATA:
             // Similar to header, but for 32-bit data objects
-            if (bit_count > 0 && (bit_count % 5 == 0)) {
-                uint8_t symbol = (shift_reg >> (bit_count - 5)) & 0x1F;
+            if (packet_bit_count > 0 && (packet_bit_count % 5 == 0)) {
+                uint8_t symbol = (shift_reg >> (packet_bit_count - 5)) & 0x1F;
                 uint8_t nibble = DECODE_4B5B[symbol];
 
                 if (nibble == 0xFF) {
@@ -222,20 +226,20 @@ void process_decoded_bit(bool bit_val) {
                 current_packet.data[data_obj_count] = (current_packet.data[data_obj_count] << 4) | nibble;
 
                 // After 8 nibbles (40 bits), we have a full data object
-                if (bit_count == 40) {
+                if (packet_bit_count == 40) {
                     data_obj_count++;
                     if (data_obj_count == current_packet.num_data_objs) {
                         state = STATE_CRC;
                     }
-                    bit_count = 0;
+                    packet_bit_count = 0;
                 }
             }
             break;
 
         case STATE_CRC:
             // Decode the 32-bit CRC
-            if (bit_count > 0 && (bit_count % 5 == 0)) {
-                uint8_t symbol = (shift_reg >> (bit_count - 5)) & 0x1F;
+            if (packet_bit_count > 0 && (packet_bit_count % 5 == 0)) {
+                uint8_t symbol = (shift_reg >> (packet_bit_count - 5)) & 0x1F;
                 uint8_t nibble = DECODE_4B5B[symbol];
 
                 if (nibble == 0xFF) {
@@ -245,9 +249,9 @@ void process_decoded_bit(bool bit_val) {
 
                 current_packet.crc = (current_packet.crc << 4) | nibble;
 
-                if (bit_count == 40) {
+                if (packet_bit_count == 40) {
                     state = STATE_EOP;
-                    bit_count = 0;
+                    packet_bit_count = 0;
                 }
             }
             break;
@@ -331,7 +335,7 @@ void sniffer_loop() {
     static uint32_t read_index = 0;
 
     // Get the DMA's current write position (as an index)
-    uint32_t dma_write_index = dma_channel_get_write_addr(dma_chan) / 4;
+    uint32_t dma_write_index = dma_hw->ch[dma_chan].write_addr / 4;
     dma_write_index = (dma_write_index - ((uint32_t)capture_buf / 4)) % CAPTURE_BUF_SIZE;
 
 
