@@ -14,10 +14,10 @@
 // System clock speed (120 MHz)
 // Note: We use clock_get_hz(clk_sys) for accuracy
 // but define this for the divider calculation.
-#define SYS_CLK_KHZ 120000
+#define SYS_CLK_KHZ 120_000
 
 // USB-PD BMC base clock rate (300 kHz)
-#define PD_CLK_HZ 300000
+#define PD_CLK_HZ 300_000
 
 // Oversampling rate (8x)
 #define OVERSAMPLE_RATE 8
