@@ -35,9 +35,13 @@ jobs:
         run: |
           cmake --build build --parallel
 
-      # 7. Upload the .uf2 file as an artifact
-      - name: Upload .uf2 artifact
-        uses: actions/upload-artifact@v4
+      # 7. Create a GitHub Release
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        if: github.ref == 'refs/heads/main'
         with:
-          name: firmware
-          path: build/rp2040_pd_sniffer.uf2
+          files: build/rp2040_pd_sniffer.uf2
+          tag_name: build-${{ github.sha }}
+          name: Latest Build
+          body: "Automatic build from commit ${{ github.sha }}"
+          prerelease: true
