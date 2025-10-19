@@ -11,18 +11,30 @@ project(rp2040_pd_sniffer C CXX ASM)
 # Initialize the SDK
 pico_sdk_init()
 
-add_executable(rp2040_pd_sniffer
-    src/main.c
+# --- Shared Library ---
+add_library(pd_library
+    src/pd_library/pd_library.c
 )
+target_include_directories(pd_library PUBLIC src/pd_library)
+target_link_libraries(pd_library pico_stdlib hardware_pio)
 
-pico_generate_pio_header(rp2040_pd_sniffer ${CMAKE_CURRENT_SOURCE_DIR}/src/pd_sniffer.pio)
+# --- Sniffer Application ---
+add_executable(sniffer
+    src/sniffer/main.c
+)
+pico_generate_pio_header(sniffer ${CMAKE_CURRENT_SOURCE_DIR}/src/sniffer/pd_sniffer.pio)
+target_link_libraries(sniffer pd_library pico_stdlib hardware_pio hardware_dma hardware_clocks)
+pico_add_extra_outputs(sniffer)
+pico_enable_stdio_usb(sniffer 1)
+pico_enable_stdio_uart(sniffer 0)
 
-# Pull in Raspberry Pi Pico specific libraries
-target_link_libraries(rp2040_pd_sniffer pico_stdlib hardware_pio hardware_dma hardware_clocks)
-
-# Create map/bin/hex/uf2 file etc.
-pico_add_extra_outputs(rp2040_pd_sniffer)
-
-# Enable usb output, disable uart output
-pico_enable_stdio_usb(rp2040_pd_sniffer 1)
-pico_enable_stdio_uart(rp2040_pd_sniffer 0)
+# --- Sink Application ---
+add_executable(sink
+    src/sink/main.c
+)
+pico_generate_pio_header(sink ${CMAKE_CURRENT_SOURCE_DIR}/src/sink/pd_transmitter.pio)
+pico_generate_pio_header(sink ${CMAKE_CURRENT_SOURCE_DIR}/src/sniffer/pd_sniffer.pio)
+target_link_libraries(sink pd_library pico_stdlib hardware_pio hardware_dma hardware_clocks)
+pico_add_extra_outputs(sink)
+pico_enable_stdio_usb(sink 1)
+pico_enable_stdio_uart(sink 0)

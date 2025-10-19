@@ -40,7 +40,9 @@ jobs:
         uses: softprops/action-gh-release@v1
         if: github.ref == 'refs/heads/main'
         with:
-          files: build/rp2040_pd_sniffer.uf2
+          files: |
+            build/sniffer.uf2
+            build/sink.uf2
           tag_name: build-${{ github.sha }}
           name: Latest Build
           body: "Automatic build from commit ${{ github.sha }}"
