@@ -1,3 +1,7 @@
+#include "ponger_logic.h"
+#include "test_firmware_common.h"
+
+#ifndef NATIVE_BUILD
 #include <stdio.h>
 #include "pico/stdlib.h"
 #include "hardware/pio.h"
@@ -19,27 +23,12 @@ uint sm_rx, sm_tx;
 uint dma_chan;
 uint32_t capture_buf[CAPTURE_BUF_SIZE];
 
-// Custom VDM for testing: "PING"
-const uint32_t PING_VDM_HEADER = 0x0001; // Unstructured VDM
-const uint32_t PING_VDM_DATA[] = {0x50494E47}; // "PING"
-
-// Custom VDM for testing: "PONG"
-const uint32_t PONG_VDM_HEADER = 0x0001; // Unstructured VDM
-const uint32_t PONG_VDM_DATA[] = {0x504F4E47}; // "PONG"
-
 void on_packet(pd_packet_t* packet) {
-    if (packet->valid && (packet->header & 0x7FFF) == PING_VDM_HEADER) {
-        if (packet->num_data_objects > 0 && packet->data[0] == PING_VDM_DATA[0]) {
-            printf("PING received! Sending PONG...\n");
-            gpio_put(LED_PIN, !gpio_get(LED_PIN)); // Toggle LED
-
-            pd_packet_t pong_packet = {
-                .header = PONG_VDM_HEADER,
-                .num_data_objects = 1,
-                .data = {PONG_VDM_DATA[0]}
-            };
-            pd_transmit_packet(pio_tx, sm_tx, &pong_packet);
-        }
+    pd_packet_t response_packet;
+    if (ponger_process_packet(packet, &response_packet)) {
+        printf("PING received! Sending PONG...\n");
+        gpio_put(LED_PIN, !gpio_get(LED_PIN)); // Toggle LED
+        pd_transmit_packet(pio_tx, sm_tx, &response_packet);
     }
 }
 
@@ -94,3 +83,4 @@ int main() {
         ponger_loop();
     }
 }
+#endif // NATIVE_BUILD

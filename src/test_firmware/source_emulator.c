@@ -1,3 +1,6 @@
+#include "source_emulator_logic.h"
+
+#ifndef NATIVE_BUILD
 #include <stdio.h>
 #include "pico/stdlib.h"
 #include "pd_library.h"
@@ -9,9 +12,6 @@
 
 PIO pio_tx = pio0;
 uint sm_tx;
-
-// 5V/3A Fixed Supply PDO
-const uint32_t SOURCE_CAP_PDO = (0b00 << 30) | (1 << 26) | (1 << 25) | (0b00 << 20) | (100 << 10) | 150;
 
 void setup_pins() {
     gpio_init(LED_PIN);
@@ -25,11 +25,8 @@ int main() {
 
     setup_pins();
 
-    pd_packet_t source_cap_packet = {
-        .header = pd_header_build(1, 1, 1, 0, 1, 0), // Source_Capabilities
-        .num_data_objects = 1,
-        .data = {SOURCE_CAP_PDO}
-    };
+    pd_packet_t source_cap_packet;
+    source_emulator_prepare_packet(&source_cap_packet);
 
     while (true) {
         printf("Broadcasting Source_Capabilities...\n");
@@ -38,3 +35,4 @@ int main() {
         sleep_ms(2000);
     }
 }
+#endif // NATIVE_BUILD

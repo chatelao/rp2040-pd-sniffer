@@ -1,3 +1,6 @@
+#include "sink_tester_logic.h"
+
+#ifndef NATIVE_BUILD
 #include <stdio.h>
 #include "pico/stdlib.h"
 #include "hardware/pio.h"
@@ -20,19 +23,11 @@ uint dma_chan;
 uint32_t capture_buf[CAPTURE_BUF_SIZE];
 
 void on_packet(pd_packet_t* packet) {
-    if (packet->valid && packet->num_data_objects > 0 && (packet->header & 0x1F) == 1) { // Source_Capabilities
-        uint32_t pdo = packet->data[0];
-        if (((pdo >> 10) & 0x3FF) == 100 && (pdo & 0x3FF) == 150) { // 5V, 3A
-            printf("5V/3A source found, sending Request...\n");
-            gpio_put(LED_PIN, !gpio_get(LED_PIN)); // Toggle LED
-
-            pd_packet_t request_packet = {
-                .header = pd_header_build(1, 2, 0, 0, 1, 1), // Request
-                .num_data_objects = 1,
-                .data = { (1 << 28) | (150 << 10) | 150 } // 3A, 3A
-            };
-            pd_transmit_packet(pio_tx, sm_tx, &request_packet);
-        }
+    pd_packet_t response_packet;
+    if (sink_tester_process_packet(packet, &response_packet)) {
+        printf("5V/3A source found, sending Request...\n");
+        gpio_put(LED_PIN, !gpio_get(LED_PIN)); // Toggle LED
+        pd_transmit_packet(pio_tx, sm_tx, &response_packet);
     }
 }
 
@@ -87,3 +82,4 @@ int main() {
         sink_tester_loop();
     }
 }
+#endif // NATIVE_BUILD

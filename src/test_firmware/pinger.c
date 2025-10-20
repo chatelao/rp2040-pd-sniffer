@@ -1,3 +1,7 @@
+#include "pinger_logic.h"
+#include "test_firmware_common.h"
+
+#ifndef NATIVE_BUILD
 #include <stdio.h>
 #include "pico/stdlib.h"
 #include "pd_library.h"
@@ -12,20 +16,10 @@ PIO pio_rx = pio0;
 PIO pio_tx = pio1;
 uint sm_rx, sm_tx;
 
-// Custom VDM for testing: "PING"
-const uint32_t PING_VDM_HEADER = 0x0001; // Unstructured VDM
-const uint32_t PING_VDM_DATA[] = {0x50494E47}; // "PING"
-
-// Custom VDM for testing: "PONG"
-const uint32_t PONG_VDM_HEADER = 0x0001; // Unstructured VDM
-const uint32_t PONG_VDM_DATA[] = {0x504F4E47}; // "PONG"
-
 void on_packet(pd_packet_t* packet) {
-    if (packet->valid && (packet->header & 0x7FFF) == PONG_VDM_HEADER) {
-        if (packet->num_data_objects > 0 && packet->data[0] == PONG_VDM_DATA[0]) {
-            printf("PONG received!\n");
-            gpio_put(LED_PIN, !gpio_get(LED_PIN)); // Toggle LED
-        }
+    if (pinger_process_packet(packet)) {
+        printf("PONG received!\n");
+        gpio_put(LED_PIN, !gpio_get(LED_PIN)); // Toggle LED
     }
 }
 
@@ -54,3 +48,4 @@ int main() {
         sleep_ms(1000);
     }
 }
+#endif // NATIVE_BUILD
