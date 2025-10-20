@@ -1,3 +1,6 @@
 [submodule "pico-sdk"]
 	path = pico-sdk
 	url = https://github.com/raspberrypi/pico-sdk.git
+[submodule "test/Unity"]
+	path = test/Unity
+	url = https://github.com/ThrowTheSwitch/Unity.git

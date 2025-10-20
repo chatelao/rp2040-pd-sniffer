@@ -1,0 +1,19 @@
+;
+; Copyright (c) 2020 Raspberry Pi (Trading) Ltd.
+;
+; SPDX-License-Identifier: BSD-3-Clause
+;
+
+.program pd_transmitter
+.side_set 1 opt
+
+; This PIO program transmits a 32-bit word, one bit at a time, at a
+; rate of 10MHz. The data is shifted out of the OSR, LSB first.
+
+.wrap_target
+    pull                ; Pull a 32-bit word from the TX FIFO
+    set x, 31           ; Initialize loop counter
+bit_loop:
+    out pins, 1         ; Shift out one bit of data
+    jmp x-- bit_loop    ; Loop 32 times
+.wrap

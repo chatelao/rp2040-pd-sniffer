@@ -35,7 +35,13 @@ jobs:
         run: |
           cmake --build build --parallel
 
-      # 7. Create a GitHub Release
+      # 7. Run the tests
+      - name: Run tests
+        run: |
+          cd build
+          ./test/test_runner
+
+      # 8. Create a GitHub Release
       - name: Create Release
         uses: softprops/action-gh-release@v1
         if: github.ref == 'refs/heads/main'

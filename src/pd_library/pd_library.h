@@ -1,42 +1,39 @@
 #ifndef PD_LIBRARY_H
 #define PD_LIBRARY_H
 
+#ifdef NATIVE_BUILD
+#include <stdint.h>
+#include <stddef.h>
+#include <stdbool.h>
+#else
 #include "pico/stdlib.h"
 #include "hardware/pio.h"
+#endif
 
-// --- Public Data Structures ---
+#define MAX_DATA_OBJECTS 7
 
-// Decoder state machine
-typedef enum {
-    STATE_IDLE,
-    STATE_PREAMBLE,
-    STATE_SOP,
-    STATE_HEADER,
-    STATE_DATA,
-    STATE_CRC,
-    STATE_EOP
-} decoder_state_t;
-
-// Structure to hold our decoded packet
 typedef struct {
     uint16_t header;
-    uint32_t data[7]; // Max 7 data objects
+    uint32_t data[MAX_DATA_OBJECTS];
     uint32_t crc;
-    uint8_t num_data_objs;
+    int num_data_objects;
     bool valid;
 } pd_packet_t;
 
-// --- Public Function Prototypes ---
+#ifdef NATIVE_BUILD
+typedef void (*packet_callback_t)(pd_packet_t* packet);
+void bmc_decoder_reset(void);
+void bmc_decoder_feed(uint32_t raw_data, packet_callback_t callback);
+#endif
 
-// Processes a block of 32 raw samples from the DMA buffer
-void bmc_decoder_feed(uint32_t sample_word, void (*packet_callback)(pd_packet_t*));
+void pd_decode_packet(uint32_t* captured_data, uint32_t data_len, pd_packet_t* packet);
+void pd_encode_packet(pd_packet_t* packet, uint32_t* encoded_data, size_t* encoded_len);
 
-// --- Transmission Functions ---
+#ifndef NATIVE_BUILD
+void pd_transmitter_init(PIO pio, uint sm, uint pin);
+void pd_transmit_packet(PIO pio, uint sm, pd_packet_t* packet);
+#endif
 
-// Construct a USB-PD request message
-uint16_t pd_build_request_header(uint8_t num_data_objs, uint8_t message_id, uint8_t power_role, uint8_t spec_rev, uint8_t data_role, uint8_t message_type);
-
-// Transmit a USB-PD packet
-void pd_transmit_packet(PIO pio, uint sm, uint16_t header, const uint32_t *data);
+uint16_t pd_header_build(int num_data_objects, uint16_t message_type, bool port_power_role, bool port_data_role, uint8_t spec_rev, uint8_t message_id);
 
 #endif // PD_LIBRARY_H
