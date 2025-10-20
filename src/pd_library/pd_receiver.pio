@@ -1,0 +1,22 @@
+;
+; Copyright (c) 2020 Raspberry Pi (Trading) Ltd.
+;
+; SPDX-License-Identifier: BSD-3-Clause
+;
+
+.program pd_receiver
+.side_set 1 opt
+
+; This PIO program continuously samples a single input pin, looking for
+; a falling edge. Once a falling edge is detected, it shifts in 32 bits
+; of data, sampling at a rate of 10MHz. The data is then pushed to the
+; RX FIFO.
+
+.wrap_target
+    wait 0 pin 0        ; Wait for a falling edge
+    set x, 31           ; Initialize loop counter
+bit_loop:
+    in pins, 1          ; Shift in one bit of data
+    jmp x-- bit_loop    ; Loop 32 times
+    push                ; Push the 32 bits to the RX FIFO
+.wrap

@@ -1,6 +1,5 @@
-name: Build RP2040-PD-Sniffer
+name: Build and Test
 
-# 1. Trigger this workflow on every push or pull request
 on:
   push:
     branches: [ "main" ]
@@ -8,36 +7,60 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-
     steps:
-      # 2. Check out your repository code
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: 'true'
 
-      # 3. Install the required build tools
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential
+
+      - name: Create build directory and run CMake
+        run: cmake -B build -S . -DNATIVE_BUILD=ON
+
+      - name: Build and run tests
+        run: |
+          cmake --build build --parallel
+          cd build
+          ctest
+
+  build_firmware:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib build-essential
 
-
-      # 5. Configure the CMake build
       - name: Create build directory and run CMake
-        run: |
-          cmake -B build -S .
+        run: cmake -B build -S .
 
-      # 6. Run the build
       - name: Build firmware
-        run: |
-          cmake --build build --parallel
+        run: cmake --build build --parallel
 
-      # 7. Upload the .uf2 file as an artifact
-      - name: Upload .uf2 artifact
-        uses: actions/upload-artifact@v4
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
         with:
-          name: firmware
-          path: build/rp2040_pd_sniffer.uf2
+          files: |
+            build/src/sniffer/sniffer.uf2
+            build/src/sink/sink.uf2
+            build/src/test_firmware/pinger.uf2
+            build/src/test_firmware/ponger.uf2
+            build/src/test_firmware/source_emulator.uf2
+            build/src/test_firmware/sink_tester.uf2
+          tag_name: build-${{ github.sha }}
+          name: Latest Build
+          body: "Automatic build from commit ${{ github.sha }}"
+          prerelease: true
