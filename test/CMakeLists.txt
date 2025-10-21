@@ -10,6 +10,7 @@ add_executable(test_runner
     test_ponger_logic.c
     test_source_emulator_logic.c
     test_sink_tester_logic.c
+    test_crc32.c
 )
 
 target_include_directories(test_runner PRIVATE
