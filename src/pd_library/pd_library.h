@@ -26,11 +26,13 @@ void bmc_decoder_reset(void);
 void bmc_decoder_feed(uint32_t raw_data, packet_callback_t callback);
 #endif
 
+uint32_t pd_crc32(const uint8_t *data, size_t len);
 void pd_decode_packet(uint32_t* captured_data, uint32_t data_len, pd_packet_t* packet);
 void pd_encode_packet(pd_packet_t* packet, uint32_t* encoded_data, size_t* encoded_len);
 
 #ifndef NATIVE_BUILD
 void pd_transmitter_init(PIO pio, uint sm, uint pin);
+void pd_receiver_init(PIO pio, uint sm, uint pin);
 void pd_transmit_packet(PIO pio, uint sm, pd_packet_t* packet);
 #endif
 
