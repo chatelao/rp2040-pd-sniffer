@@ -1,6 +1,8 @@
 add_library(pd_library STATIC
     pd_library.c
     pd_sink.c
+    pd_source.c
+    pd_common.c
 )
 
 target_include_directories(pd_library PUBLIC

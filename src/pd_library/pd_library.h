@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+typedef void* PIO;
+typedef unsigned int uint;
 #else
 #include "pico/stdlib.h"
 #include "hardware/pio.h"

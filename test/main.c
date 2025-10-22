@@ -20,9 +20,11 @@ extern void test_sink_tester_process_packet_not_source_cap(void);
 extern void test_sink_tester_process_packet_invalid(void);
 extern void test_crc32_goodcrc(void);
 extern void test_crc32_source_capabilities(void);
+extern void test_vdm_unlock(void);
 
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_vdm_unlock);
     RUN_TEST(test_decode_goodcrc);
     RUN_TEST(test_encode_goodcrc);
     RUN_TEST(test_pd_build_request_header);

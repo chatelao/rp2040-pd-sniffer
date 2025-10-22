@@ -1,6 +1,10 @@
 #include "pd_sink.h"
+#include "pd_common.h"
 #include <string.h>
+
+#ifndef NATIVE_BUILD
 #include "pico/time.h"
+#endif
 
 static sink_state_t state;
 static uint32_t message_id_counter;
@@ -16,7 +20,9 @@ static void send_good_crc(PIO pio, uint sm, int message_id) {
     pd_packet_t packet;
     packet.header = pd_header_build(0, 0x1, false, false, 2, message_id);
     packet.num_data_objects = 0;
+#ifndef NATIVE_BUILD
     pd_transmit_packet(pio, sm, &packet);
+#endif
 }
 
 static void send_request(PIO pio, uint sm, int object_position) {
@@ -26,7 +32,9 @@ static void send_request(PIO pio, uint sm, int object_position) {
 
     // Fixed 15V, 3A request
     packet.data[0] = (object_position << 28) | (1 << 27) | (0 << 25) | (0 << 24) | (300 << 10) | (300 << 0);
+#ifndef NATIVE_BUILD
     pd_transmit_packet(pio, sm, &packet);
+#endif
 
     message_id_counter = (message_id_counter + 1) % 8;
     state = SINK_STATE_REQUESTING;

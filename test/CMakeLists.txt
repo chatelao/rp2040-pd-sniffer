@@ -4,6 +4,7 @@ add_executable(test_runner
     main.c
     test_data.c
     test_decoder.c
+    test_source_logic.c
     test_encoder.c
     test_header_builder.c
     test_pinger_logic.c
