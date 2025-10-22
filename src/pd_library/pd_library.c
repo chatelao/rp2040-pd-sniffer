@@ -275,3 +275,12 @@ uint16_t pd_header_build(int num_data_objects, uint16_t message_type, bool port_
            (port_data_role ? (1 << 5) : 0) |
            (message_type & 0x1F);
 }
+
+uint32_t pd_build_vdm_header(uint16_t vendor_id, bool structured, uint8_t command_type, uint8_t command) {
+    uint32_t vdm_header = 0;
+    vdm_header |= (vendor_id & 0xFFFF) << 16;
+    vdm_header |= (structured & 0x1) << 15;
+    vdm_header |= (command_type & 0x7) << 8;
+    vdm_header |= (command & 0x1F) << 0;
+    return vdm_header;
+}

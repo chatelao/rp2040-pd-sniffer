@@ -33,5 +33,6 @@ void pd_encode_packet(pd_packet_t* packet, uint32_t* encoded_data, size_t* encod
 void pd_transmit_packet(unsigned int sm, pd_packet_t* packet);
 
 uint16_t pd_header_build(int num_data_objects, uint16_t message_type, bool port_power_role, bool port_data_role, uint8_t spec_rev, uint8_t message_id);
+uint32_t pd_build_vdm_header(uint16_t vendor_id, bool structured, uint8_t command_type, uint8_t command);
 
 #endif // PD_LIBRARY_H
