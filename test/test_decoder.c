@@ -10,12 +10,9 @@ void packet_callback(pd_packet_t* packet) {
     packet_received = true;
 }
 
-void setUp(void) {
+void test_decode_goodcrc(void) {
     packet_received = false;
     bmc_decoder_reset();
-}
-
-void test_decode_goodcrc(void) {
     for (int i = 0; i < goodcrc_bmc_len; ++i) {
         bmc_decoder_feed(goodcrc_bmc[i], packet_callback);
     }

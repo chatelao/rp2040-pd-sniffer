@@ -9,8 +9,8 @@ typedef enum {
     SINK_STATE_REQUESTING,
 } sink_state_t;
 
-void sink_init(void);
+void sink_init(unsigned int sm);
 void sink_tick(void);
-void sink_handle_packet(PIO pio, uint sm, pd_packet_t* packet);
+void sink_handle_packet(pd_packet_t* packet);
 
 #endif // PD_SINK_H

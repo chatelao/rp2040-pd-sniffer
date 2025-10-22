@@ -5,6 +5,7 @@ add_library(pd_library STATIC
 
 target_include_directories(pd_library PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../
 )
 
 if (NATIVE_BUILD)
