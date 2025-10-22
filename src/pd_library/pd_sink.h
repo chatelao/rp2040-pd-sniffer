@@ -12,5 +12,6 @@ typedef enum {
 void sink_init(unsigned int sm);
 void sink_tick(void);
 void sink_handle_packet(pd_packet_t* packet);
+sink_state_t sink_get_state(void);
 
 #endif // PD_SINK_H

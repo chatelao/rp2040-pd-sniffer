@@ -55,6 +55,10 @@ void sink_tick(void) {
 #endif
 }
 
+sink_state_t sink_get_state(void) {
+    return state;
+}
+
 void sink_handle_packet(pd_packet_t* packet) {
     uint16_t message_type = packet->header & 0x1F;
     uint8_t message_id = (packet->header >> 9) & 0x7;
