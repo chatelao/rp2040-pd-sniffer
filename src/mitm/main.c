@@ -2,41 +2,42 @@
 #include "pico/stdlib.h"
 #include "pd_library.h"
 #include "pd_sink.h"
-#include "pd_source.h"
 #include "hal/hal.h"
 
-// Shared state between sink and source
-volatile bool power_ready = false;
+static pd_sink_t sink0;
+static pd_sink_t sink1;
 
-// Custom sink handler to notify the source when power is ready
-void mitm_sink_handle_packet(pd_packet_t* packet) {
-    sink_handle_packet(packet);
-    if (sink_get_state() == SINK_STATE_READY && !power_ready) {
-        power_ready = true;
-    }
+static void inject_vdm(unsigned int sm) {
+    pd_packet_t packet;
+    packet.header = pd_header_build(1, 0xF, true, false, 2, 0);
+    packet.num_data_objects = 1;
+    packet.data[0] = pd_build_vdm_header(0x1234, true, 1, 0x5);
+    pd_transmit_packet(sm, &packet);
 }
 
 int main() {
     stdio_init_all();
 
-    unsigned int sink_sm = hal_init(0);
-    unsigned int source_sm = hal_init(1);
+    unsigned int port0_sm = hal_init(0);
+    unsigned int port1_sm = hal_init(1);
 
-    sink_init(sink_sm);
-    source_init(source_sm);
+    sink_init(&sink0, port0_sm);
+    sink_init(&sink1, port1_sm);
 
     while (true) {
-        sink_tick();
-        if (power_ready) {
-            source_tick();
-        }
+        sink_tick(&sink0);
+        sink_tick(&sink1);
 
         pd_packet_t packet;
         if (hal_get_packet(0, &packet)) {
-            mitm_sink_handle_packet(&packet);
+            sink_handle_packet(&sink0, &packet);
         }
-        if (hal_get_packet(1, &packet) && power_ready) {
-            source_handle_packet(&packet);
+        if (hal_get_packet(1, &packet)) {
+            sink_handle_packet(&sink1, &packet);
+        }
+
+        if (sink0.state == SINK_STATE_READY && sink1.state == SINK_STATE_READY) {
+            inject_vdm(port1_sm);
         }
     }
 

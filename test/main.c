@@ -7,6 +7,7 @@ extern void test_crc32_goodcrc(void);
 extern void test_crc32_source_capabilities(void);
 extern void test_encode_goodcrc(void);
 extern void test_decode_goodcrc(void);
+extern void test_pd_build_vdm_header(void);
 extern void test_pd_build_request_header(void);
 extern void test_pd_build_request_header_no_data(void);
 extern void test_pinger_process_packet_pong(void);
@@ -34,6 +35,7 @@ int main(void) {
     RUN_TEST(test_crc32_source_capabilities);
     RUN_TEST(test_encode_goodcrc);
     RUN_TEST(test_decode_goodcrc);
+    RUN_TEST(test_pd_build_vdm_header);
     RUN_TEST(test_pd_build_request_header);
     RUN_TEST(test_pd_build_request_header_no_data);
     RUN_TEST(test_pinger_process_packet_pong);

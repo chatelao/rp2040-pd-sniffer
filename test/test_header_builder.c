@@ -1,6 +1,11 @@
 #include "unity.h"
 #include "pd_library.h"
 
+void test_pd_build_vdm_header(void) {
+    uint32_t header = pd_build_vdm_header(0x1234, true, 1, 0x5);
+    TEST_ASSERT_EQUAL_HEX32(0x12348105, header);
+}
+
 // Test with 1 data object
 void test_pd_build_request_header(void) {
     // num_data_objects=1, message_type=2 (Request), power_role=0 (Sink), data_role=0 (UFP), spec_rev=1 (2.0), msg_id=5
