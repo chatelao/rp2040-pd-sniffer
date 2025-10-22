@@ -3,7 +3,7 @@
 #ifndef NATIVE_BUILD
 #include <stdio.h>
 #include "pico/stdlib.h"
-#include "pd_library.h"
+#include "pd_library/pd_library.h"
 #include "pd_transmitter.pio.h"
 
 #define CC1_PIN 28

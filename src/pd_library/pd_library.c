@@ -49,21 +49,36 @@ const uint8_t fiveb_to_fourb[32] = {
     0, 0, 0, 0, 14, 15, 0, 0,
 };
 
-#define CRC_POLY 0x04C11DB7
+#define CRC_POLY 0xEDB88320
 
-uint32_t pd_crc32(const uint8_t *data, size_t len) {
-    uint32_t crc = 0xFFFFFFFF;
-    for (size_t i = 0; i < len; i++) {
-        crc ^= (uint32_t)data[i] << 24;
+static uint32_t crc32_tab[256];
+
+static void crc32_tab_init(void) {
+    for (uint32_t i = 0; i < 256; i++) {
+        uint32_t crc = i;
         for (int j = 0; j < 8; j++) {
-            if (crc & 0x80000000) {
-                crc = (crc << 1) ^ CRC_POLY;
+            if (crc & 1) {
+                crc = (crc >> 1) ^ CRC_POLY;
             } else {
-                crc <<= 1;
+                crc >>= 1;
             }
         }
+        crc32_tab[i] = crc;
     }
-    return crc;
+}
+
+uint32_t pd_crc32(const uint8_t *data, size_t len) {
+    static int init = 0;
+    if (!init) {
+        crc32_tab_init();
+        init = 1;
+    }
+
+    uint32_t crc = 0xFFFFFFFF;
+    for (size_t i = 0; i < len; i++) {
+        crc = (crc >> 8) ^ crc32_tab[(crc & 0xFF) ^ data[i]];
+    }
+    return ~crc;
 }
 
 #define K_CODE_SYNC1 0b11000
@@ -163,23 +178,24 @@ static void append_4b5b(uint32_t* stream, int* stream_len, uint16_t data) {
     *stream_len += 4;
 }
 
+static void append_4b5b_u32(uint32_t* stream, int* stream_len, uint32_t data) {
+    append_4b5b(stream, stream_len, (data >> 0) & 0xFFFF);
+    append_4b5b(stream, stream_len, (data >> 16) & 0xFFFF);
+}
+
 void pd_encode_packet(pd_packet_t* packet, uint32_t* encoded_data, size_t* encoded_len) {
     uint32_t stream[64];
     int stream_len = 0;
 
-    // Preamble and SOP
-    stream[stream_len++] = 0b10101010;
-    stream[stream_len++] = 0b10101010;
-    stream[stream_len++] = 0b10101010;
-    stream[stream_len++] = 0b10101010;
-    stream[stream_len++] = 0b10101010;
-    stream[stream_len++] = 0b10101010;
-    stream[stream_len++] = 0b10101011;
+    // SOP
+    stream[stream_len++] = K_CODE_SYNC1;
+    stream[stream_len++] = K_CODE_SYNC1;
+    stream[stream_len++] = K_CODE_SYNC2;
+    stream[stream_len++] = K_CODE_SYNC2;
 
     append_4b5b(stream, &stream_len, packet->header);
     for (int i = 0; i < packet->num_data_objects; ++i) {
-        append_4b5b(stream, &stream_len, (packet->data[i] >> 0) & 0xFFFF);
-        append_4b5b(stream, &stream_len, (packet->data[i] >> 16) & 0xFFFF);
+        append_4b5b_u32(stream, &stream_len, packet->data[i]);
     }
 
     uint8_t crc_data[2 + packet->num_data_objects * 4];
@@ -188,34 +204,56 @@ void pd_encode_packet(pd_packet_t* packet, uint32_t* encoded_data, size_t* encod
         memcpy(crc_data + 2, packet->data, packet->num_data_objects * 4);
     }
     uint32_t crc = pd_crc32(crc_data, 2 + packet->num_data_objects * 4);
-
-    append_4b5b(stream, &stream_len, (crc >> 0) & 0xFFFF);
-    append_4b5b(stream, &stream_len, (crc >> 16) & 0xFFFF);
+    append_4b5b_u32(stream, &stream_len, crc);
 
     stream[stream_len++] = 0b01110; // EOP
 
     // BMC encode
+    *encoded_len = 0;
     int bit_count = 0;
-    uint32_t bmc_stream = 0;
-    for (int i = 0; i < stream_len; ++i) {
-        for (int j = 0; j < 5; ++j) {
-            uint32_t bit = (stream[i] >> j) & 1;
-            if (bit_count > 0 && bit != ((bmc_stream >> (bit_count - 1)) & 1)) {
-                bmc_stream |= (1 << bit_count); // Add transition
-                bit_count++;
-            }
-            bmc_stream |= (bit << bit_count);
+    uint64_t bmc_stream = 0;
+    int last_bit = 1;
+    uint64_t preamble = 0xAAAAAAAAAAAAAAAB;
+
+    for (int i = 0; i < 64; ++i) {
+        uint32_t bit = (preamble >> i) & 1;
+        if (bit == last_bit) {
+            bmc_stream |= (1ULL << bit_count);
             bit_count++;
+        }
+        bmc_stream |= ((uint64_t)bit << bit_count);
+        bit_count++;
+        last_bit = bit;
+        if (bit_count >= 32) {
+            encoded_data[*encoded_len] = bmc_stream;
+            (*encoded_len)++;
+            bmc_stream >>= 32;
+            bit_count -= 32;
         }
     }
 
-    if (bit_count > 32) {
-        encoded_data[0] = bmc_stream;
-        encoded_data[1] = bmc_stream >> 32;
-        *encoded_len = 2;
-    } else {
-        encoded_data[0] = bmc_stream;
-        *encoded_len = 1;
+    for (int i = 0; i < stream_len; ++i) {
+        for (int j = 4; j >= 0; --j) {
+            uint32_t bit = (stream[i] >> j) & 1;
+            if (bit == last_bit) {
+                bmc_stream |= (1ULL << bit_count);
+                bit_count++;
+            }
+            bmc_stream |= ((uint64_t)bit << bit_count);
+            bit_count++;
+            last_bit = bit;
+
+            if (bit_count >= 32) {
+                encoded_data[*encoded_len] = bmc_stream;
+                (*encoded_len)++;
+                bmc_stream >>= 32;
+                bit_count -= 32;
+            }
+        }
+    }
+    if (bit_count > 0) {
+        encoded_data[*encoded_len] = bmc_stream;
+        (*encoded_len)++;
     }
 }
 
