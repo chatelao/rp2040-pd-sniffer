@@ -1,4 +1,5 @@
 #include "pd_library.h"
+#include "hal/hal.h"
 #include <string.h>
 
 #ifndef NATIVE_BUILD
@@ -6,6 +7,8 @@
 #include "hardware/pio.h"
 #include "pd_receiver.pio.h"
 #include "pd_transmitter.pio.h"
+#else
+#include <stdio.h>
 #endif
 
 #ifdef NATIVE_BUILD
@@ -60,7 +63,7 @@ uint32_t pd_crc32(const uint8_t *data, size_t len) {
             }
         }
     }
-    return crc ^ 0xFFFFFFFF;
+    return crc;
 }
 
 #define K_CODE_SYNC1 0b11000
@@ -181,8 +184,10 @@ void pd_encode_packet(pd_packet_t* packet, uint32_t* encoded_data, size_t* encod
 
     uint8_t crc_data[2 + packet->num_data_objects * 4];
     memcpy(crc_data, &packet->header, 2);
-    memcpy(crc_data + 2, packet->data, packet->num_data_objects * 4);
-    uint32_t crc = pd_crc32(crc_data, sizeof(crc_data));
+    if (packet->num_data_objects > 0) {
+        memcpy(crc_data + 2, packet->data, packet->num_data_objects * 4);
+    }
+    uint32_t crc = pd_crc32(crc_data, 2 + packet->num_data_objects * 4);
 
     append_4b5b(stream, &stream_len, (crc >> 0) & 0xFFFF);
     append_4b5b(stream, &stream_len, (crc >> 16) & 0xFFFF);
@@ -214,6 +219,16 @@ void pd_encode_packet(pd_packet_t* packet, uint32_t* encoded_data, size_t* encod
     }
 }
 
+void pd_transmit_packet(unsigned int sm, pd_packet_t* packet) {
+    uint32_t encoded_data[10];
+    size_t encoded_len;
+    pd_encode_packet(packet, encoded_data, &encoded_len);
+
+    for (size_t i = 0; i < encoded_len; ++i) {
+        hal_pio_sm_put(sm, encoded_data[i]);
+    }
+}
+
 uint16_t pd_header_build(int num_data_objects, uint16_t message_type, bool port_power_role, bool port_data_role, uint8_t spec_rev, uint8_t message_id) {
     return ((num_data_objects & 0x7) << 12) |
            ((message_id & 0x7) << 9) |
@@ -222,40 +237,3 @@ uint16_t pd_header_build(int num_data_objects, uint16_t message_type, bool port_
            (port_data_role ? (1 << 5) : 0) |
            (message_type & 0x1F);
 }
-
-#ifndef NATIVE_BUILD
-void pd_transmitter_init(PIO pio, uint sm, uint pin) {
-    uint offset = pio_add_program(pio, &pd_transmitter_program);
-    pio_sm_config c = pd_transmitter_program_get_default_config(offset);
-    sm_config_set_out_pins(&c, pin, 1);
-    sm_config_set_sideset_pins(&c, pin);
-    sm_config_set_out_shift(&c, false, true, 32);
-    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
-    // The transmitter runs at 10 MHz, so we need a divider of 12.5
-    sm_config_set_clkdiv(&c, 12.5f);
-    pio_sm_init(pio, sm, offset, &c);
-    pio_sm_set_enabled(pio, sm, true);
-}
-
-void pd_receiver_init(PIO pio, uint sm, uint pin) {
-    uint offset = pio_add_program(pio, &pd_receiver_program);
-    pio_sm_config c = pd_receiver_program_get_default_config(offset);
-    sm_config_set_in_pins(&c, pin);
-    sm_config_set_in_shift(&c, false, true, 32);
-    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX);
-    // The receiver runs at 10 MHz, so we need a divider of 12.5
-    sm_config_set_clkdiv(&c, 12.5f);
-    pio_sm_init(pio, sm, offset, &c);
-    pio_sm_set_enabled(pio, sm, true);
-}
-
-void pd_transmit_packet(PIO pio, uint sm, pd_packet_t* packet) {
-    uint32_t encoded_data[10];
-    size_t encoded_len;
-    pd_encode_packet(packet, encoded_data, &encoded_len);
-
-    for (size_t i = 0; i < encoded_len; ++i) {
-        pio_sm_put_blocking(pio, sm, encoded_data[i]);
-    }
-}
-#endif
