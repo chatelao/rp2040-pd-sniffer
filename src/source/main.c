@@ -34,20 +34,15 @@ int main() {
 
     source_init();
 
+    // Placeholder for interrupt handler
+    void pio_irq_handler() {
+        // This is a placeholder for a more robust interrupt-based receiver
+    }
+
+    irq_set_exclusive_handler(PIO0_IRQ_0, pio_irq_handler);
+    irq_set_enabled(PIO0_IRQ_0, true);
+
     while (1) {
         source_tick(pio, sm_tx);
-
-        // This is a placeholder for a more robust DMA-based receiver
-        if (pio_sm_get_rx_fifo_level(pio, sm_rx) > 0) {
-            uint32_t data_len = 1024 - dma_channel_hw_addr(dma_chan)->transfer_count;
-            if (data_len > 0) {
-                pd_packet_t packet;
-                pd_decode_packet(captured_data, data_len, &packet);
-                if (packet.valid) {
-                    source_handle_packet(pio, sm_tx, &packet);
-                }
-                dma_channel_set_write_addr(dma_chan, captured_data, true);
-            }
-        }
     }
 }

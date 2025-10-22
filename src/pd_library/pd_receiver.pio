@@ -19,4 +19,5 @@ bit_loop:
     in pins, 1          ; Shift in one bit of data
     jmp x-- bit_loop    ; Loop 32 times
     push                ; Push the 32 bits to the RX FIFO
+    irq set 0           ; Signal that a word has been received
 .wrap

@@ -17,5 +17,7 @@ typedef enum {
 void source_init(void);
 void source_tick(PIO pio, uint sm);
 void source_handle_packet(PIO pio, uint sm, pd_packet_t* packet);
+source_state_t source_get_state(void);
+void source_send_vdm(PIO pio, uint sm);
 
 #endif // PD_SOURCE_H

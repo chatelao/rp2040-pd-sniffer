@@ -235,6 +235,7 @@ void pd_transmitter_init(PIO pio, uint sm, uint pin) {
     sm_config_set_clkdiv(&c, 12.5f);
     pio_sm_init(pio, sm, offset, &c);
     pio_sm_set_enabled(pio, sm, true);
+    pio_set_irq0_source_enabled(pio, pis_sm0_rx_fifo_not_empty + sm, true);
 }
 
 void pd_receiver_init(PIO pio, uint sm, uint pin) {

@@ -13,6 +13,6 @@ uint64_t time_us_64(void) {
     gettimeofday(&tv, NULL);
     return tv.tv_sec * 1000000 + tv.tv_usec;
 #else
-    return time_us_64();
+    return to_us_since_boot(get_absolute_time());
 #endif
 }

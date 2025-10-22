@@ -17,7 +17,7 @@ bool vdm_unlocked = false;
 static bool vdm_unlocked = false;
 #endif
 
-static void send_source_capabilities(PIO pio, uint sm) {
+void send_source_capabilities(PIO pio, uint sm) {
     pd_packet_t packet;
     int num_data_objects = vdm_unlocked ? 2 : 1;
     packet.header = pd_header_build(num_data_objects, 0x1, true, false, 2, message_id_counter);
@@ -54,6 +54,21 @@ void source_tick(PIO pio, uint sm) {
             state_timer = time_us_64();
         }
     }
+}
+
+source_state_t source_get_state(void) {
+    return state;
+}
+
+void source_send_vdm(PIO pio, uint sm) {
+    pd_packet_t packet;
+    packet.header = pd_header_build(1, 0xF, true, false, 2, message_id_counter);
+    packet.num_data_objects = 1;
+    packet.data[0] = VDM_PROPRIETARY_UNLOCK_SEQ;
+#ifndef NATIVE_BUILD
+    pd_transmit_packet(pio, sm, &packet);
+#endif
+    message_id_counter = (message_id_counter + 1) % 8;
 }
 
 static void send_accept(PIO pio, uint sm, int message_id) {

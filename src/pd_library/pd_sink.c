@@ -25,7 +25,7 @@ static void send_good_crc(PIO pio, uint sm, int message_id) {
 #endif
 }
 
-static void send_request(PIO pio, uint sm, int object_position) {
+void send_request(PIO pio, uint sm, int object_position) {
     pd_packet_t packet;
     packet.header = pd_header_build(1, 0x2, false, false, 2, message_id_counter);
     packet.num_data_objects = 1;
@@ -75,10 +75,14 @@ void sink_handle_packet(PIO pio, uint sm, pd_packet_t* packet) {
     } else if (state == SINK_STATE_REQUESTING) {
         if (message_type == 0x2) { // Accept
             send_good_crc(pio, sm, message_id);
-            state = SINK_STATE_READY;
+            state = SINK_STATE_CONTRACT_ESTABLISHED;
         } else if (message_type == 0x3) { // Reject
             send_good_crc(pio, sm, message_id);
             state = SINK_STATE_READY;
         }
     }
+}
+
+sink_state_t sink_get_state(void) {
+    return state;
 }
