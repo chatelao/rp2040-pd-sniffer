@@ -85,7 +85,7 @@ uint32_t pd_crc32(const uint8_t *data, size_t len) {
 #define K_CODE_SYNC2 0b10001
 #define K_CODE_EOP   0b01101
 
-void pd_decode_packet(uint32_t* captured_data, uint32_t data_len, pd_packet_t* packet) {
+void pd_decode_packet(const uint32_t* captured_data, uint32_t data_len, pd_packet_t* packet) {
     packet->valid = false;
 
     enum { STATE_SOP, STATE_PACKET } decoder_state = STATE_SOP;
@@ -183,7 +183,7 @@ static void append_4b5b_u32(uint32_t* stream, int* stream_len, uint32_t data) {
     append_4b5b(stream, stream_len, (data >> 16) & 0xFFFF);
 }
 
-void pd_encode_packet(pd_packet_t* packet, uint32_t* encoded_data, size_t* encoded_len) {
+void pd_encode_packet(const pd_packet_t* packet, uint32_t* encoded_data, size_t* encoded_len) {
     uint32_t stream[64];
     int stream_len = 0;
 
@@ -257,7 +257,7 @@ void pd_encode_packet(pd_packet_t* packet, uint32_t* encoded_data, size_t* encod
     }
 }
 
-void pd_transmit_packet(unsigned int sm, pd_packet_t* packet) {
+void pd_transmit_packet(unsigned int sm, const pd_packet_t* packet) {
     uint32_t encoded_data[10];
     size_t encoded_len;
     pd_encode_packet(packet, encoded_data, &encoded_len);

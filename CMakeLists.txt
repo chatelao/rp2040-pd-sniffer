@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.13)
 
 option(NATIVE_BUILD "Build for native target (PC)" OFF)
-set(TARGET_PLATFORM "PICO" CACHE STRING "Target hardware platform (PICO or STM32)")
+set(TARGET_PLATFORM "pico" CACHE STRING "Target hardware platform (pico or stm32)")
 
 if(NATIVE_BUILD)
     # For native build, we only build the tests
@@ -17,11 +17,11 @@ if(NATIVE_BUILD)
     add_subdirectory(test)
 else()
     # For pico build, we build the firmware
-    if(TARGET_PLATFORM STREQUAL "PICO")
+    if(TARGET_PLATFORM STREQUAL "pico")
         include(pico-sdk/pico_sdk_init.cmake)
     endif()
     project(rp2040-usb-pd-sniffer C CXX ASM)
-    if(TARGET_PLATFORM STREQUAL "PICO")
+    if(TARGET_PLATFORM STREQUAL "pico")
         pico_sdk_init()
     endif()
 
