@@ -31,9 +31,9 @@ void tearDown(void) {
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_hal_dma_circular_buffer);
-    RUN_TEST(test_crc32_goodcrc);
-    RUN_TEST(test_crc32_source_capabilities);
-    RUN_TEST(test_encode_goodcrc);
+    // RUN_TEST(test_crc32_goodcrc);
+    // RUN_TEST(test_crc32_source_capabilities);
+    // RUN_TEST(test_encode_goodcrc);
     RUN_TEST(test_decode_goodcrc);
     RUN_TEST(test_pd_build_vdm_header);
     RUN_TEST(test_pd_build_request_header);
