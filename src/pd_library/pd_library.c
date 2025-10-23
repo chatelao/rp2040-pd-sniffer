@@ -255,7 +255,7 @@ void pd_encode_packet(const pd_packet_t* packet, uint32_t* encoded_data, size_t*
     }
 }
 
-void pd_transmit_packet(unsigned int sm, const pd_packet_t* packet) {
+void __attribute__((weak)) pd_transmit_packet(unsigned int sm, const pd_packet_t* packet) {
     uint32_t encoded_data[10];
     size_t encoded_len;
     pd_encode_packet(packet, encoded_data, &encoded_len);

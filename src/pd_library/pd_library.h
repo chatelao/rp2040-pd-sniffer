@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+uint64_t time_us_64(void) __attribute__((weak));
 #else
 #include "pico/stdlib.h"
 #include "hardware/pio.h"
