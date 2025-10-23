@@ -65,3 +65,33 @@ sudo apt-get install -y git cmake gcc-arm-none-eabi
 1.  **Flash the Firmware:** Flash `sink.uf2` to your Pico.
 2.  **Connect to Power Adapter:** Connect the CC line of your circuit to a USB-PD power adapter.
 3.  **Monitor the Output:** Open a serial monitor. The application will print a message if it finds and requests the 15V/3A profile.
+
+## Acknowledgements
+
+The development of the flexible, data-driven sink implementation was significantly influenced by the work of Manuel Bleichenbacher on the [usb-pd-arduino](https://github.com/manuelbl/usb-pd-arduino) project. His project served as an invaluable reference for understanding the USB-PD protocol and implementing a robust state machine.
+
+The `usb-pd-arduino` project is licensed under the MIT License, and its license is included below:
+
+```
+MIT License
+
+Copyright (c) 2023 Manuel Bleichenbacher
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
