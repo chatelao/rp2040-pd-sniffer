@@ -12,7 +12,15 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Install cppcheck
-      run: sudo apt-get install cppcheck
-    - name: Run cppcheck
-      run: cppcheck --enable=all --error-exitcode=1 src
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cppcheck gcc-arm-none-eabi cmake
+    - name: Checkout pico-sdk
+      run: git submodule update --init
+    - name: Build and run cppcheck
+      run: |
+        mkdir build
+        cd build
+        cmake .. -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+        cppcheck --project=compile_commands.json --enable=all --error-exitcode=1
