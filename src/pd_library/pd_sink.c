@@ -53,20 +53,17 @@ void sink_tick(pd_sink_t* sink) {
         sink->state = SINK_STATE_READY;
     }
 
-#ifndef NATIVE_BUILD
     if (sink->state == SINK_STATE_REQUESTING) {
         if (time_us_64() - sink->state_timer > 500000) {
             sink->state = SINK_STATE_READY;
         }
     }
-#endif
 }
 
 void sink_handle_packet(pd_sink_t* sink, pd_packet_t* packet) {
     uint16_t message_type = packet->header & 0x1F;
     uint8_t message_id = (packet->header >> 9) & 0x7;
 
-#ifndef NATIVE_BUILD
     if (sink->state == SINK_STATE_READY) {
         if (message_type == 0x1) { // Source_Capabilities
             send_good_crc(sink, message_id);
@@ -74,16 +71,19 @@ void sink_handle_packet(pd_sink_t* sink, pd_packet_t* packet) {
 
             if (sink->desired_voltage_mv > 0) {
                 int best_object_position = -1;
-                uint32_t best_voltage_mv = 0;
-                uint32_t best_current_ma = 0;
+                uint32_t best_voltage_mv = 0xffffffff;
+                uint32_t best_current_ma = 0xffffffff;
 
                 for (int i = 0; i < packet->num_data_objects; ++i) {
                     uint32_t pdo = packet->data[i];
                     if ((pdo >> 30) == 0) { // Fixed supply
                         uint32_t voltage_mv = ((pdo >> 10) & 0x3FF) * 50;
                         uint32_t current_ma = (pdo & 0x3FF) * 10;
+
                         if (voltage_mv >= sink->desired_voltage_mv && current_ma >= sink->desired_current_ma) {
-                            if (best_object_position == -1 || voltage_mv < best_voltage_mv) {
+                            if (best_object_position == -1 ||
+                                (voltage_mv < best_voltage_mv) ||
+                                (voltage_mv == best_voltage_mv && current_ma < best_current_ma)) {
                                 best_object_position = i + 1;
                                 best_voltage_mv = voltage_mv;
                                 best_current_ma = current_ma;
@@ -111,5 +111,4 @@ void sink_handle_packet(pd_sink_t* sink, pd_packet_t* packet) {
             sink->state = SINK_STATE_READY;
         }
     }
-#endif
 }

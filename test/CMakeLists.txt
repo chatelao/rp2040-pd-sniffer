@@ -11,6 +11,7 @@ add_executable(test_runner
     test_source_emulator_logic.c
     test_sink_tester_logic.c
     test_crc32.c
+    test_pd_sink.c
     test_hal_dma.c
 )
 
