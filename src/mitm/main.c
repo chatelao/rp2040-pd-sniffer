@@ -24,6 +24,8 @@ int main() {
     sink_init(&sink0, port0_sm);
     sink_init(&sink1, port1_sm);
 
+    sink_request_power(&sink0, 15000, 3000);
+
     while (true) {
         sink_tick(&sink0);
         sink_tick(&sink1);

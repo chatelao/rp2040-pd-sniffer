@@ -21,6 +21,8 @@ extern void test_sink_tester_process_packet_valid_source_cap(void);
 extern void test_sink_tester_process_packet_invalid_source_cap(void);
 extern void test_sink_tester_process_packet_not_source_cap(void);
 extern void test_sink_tester_process_packet_invalid(void);
+extern void test_crc32_simple(void);
+extern void test_crc32_string(void);
 
 void setUp(void) {
 }
@@ -49,5 +51,7 @@ int main(void) {
     RUN_TEST(test_sink_tester_process_packet_invalid_source_cap);
     RUN_TEST(test_sink_tester_process_packet_not_source_cap);
     RUN_TEST(test_sink_tester_process_packet_invalid);
+    RUN_TEST(test_crc32_simple);
+    RUN_TEST(test_crc32_string);
     return UNITY_END();
 }
