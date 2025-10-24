@@ -66,6 +66,10 @@ sudo apt-get install -y git cmake gcc-arm-none-eabi
 2.  **Connect to Power Adapter:** Connect the CC line of your circuit to a USB-PD power adapter.
 3.  **Monitor the Output:** Open a serial monitor. The application will print a message if it finds and requests the 15V/3A profile.
 
+## Documentation
+
+The documentation for this project is available [here](https://chatelao.github.io/rp2040-pd-sniffer/).
+
 ## Acknowledgements
 
 The development of the flexible, data-driven sink implementation was significantly influenced by the work of Manuel Bleichenbacher on the [usb-pd-arduino](https://github.com/manuelbl/usb-pd-arduino) project. His project served as an invaluable reference for understanding the USB-PD protocol and implementing a robust state machine.
