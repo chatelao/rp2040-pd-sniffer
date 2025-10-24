@@ -19,7 +19,7 @@ jobs:
         mkdir build
         cd build
         cmake .. -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-        cppcheck --project=compile_commands.json --enable=all --error-exitcode=1
+        cppcheck --project=compile_commands.json --enable=all --error-exitcode=1 -i pico-sdk -i test/Unity
     - name: Generate Doxygen documentation
       run: doxygen Doxyfile
     - name: Deploy to GitHub Pages
