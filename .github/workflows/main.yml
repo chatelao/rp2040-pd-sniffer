@@ -1,10 +1,6 @@
 name: Cppcheck and Doxygen
 
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+on: [push, pull_request]
 
 jobs:
   build:
@@ -27,6 +23,7 @@ jobs:
     - name: Generate Doxygen documentation
       run: doxygen Doxyfile
     - name: Deploy to GitHub Pages
+      if: github.ref == 'refs/heads/main'
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
