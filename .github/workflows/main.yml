@@ -11,7 +11,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y cppcheck gcc-arm-none-eabi cmake doxygen graphviz
+        sudo apt-get install -y cppcheck gcc-arm-none-eabi cmake doxygen graphviz jq
     - name: Checkout pico-sdk
       run: git submodule update --init --recursive
     - name: Build and run cppcheck
@@ -19,7 +19,8 @@ jobs:
         mkdir build
         cd build
         cmake .. -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-        cppcheck --project=compile_commands.json --enable=all --error-exitcode=1 -i ../pico-sdk/ -i ../test/Unity/ --suppress=unusedFunction
+        jq '[.[] | select(.file | startswith("../src"))]' compile_commands.json > compile_commands_filtered.json
+        cppcheck --project=compile_commands_filtered.json --enable=all --error-exitcode=1
     - name: Generate Doxygen documentation
       run: doxygen Doxyfile
     - name: Deploy to GitHub Pages
