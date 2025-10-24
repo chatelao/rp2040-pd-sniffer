@@ -1,3 +1,7 @@
+/**
+ * @file pd_phy.h
+ * @brief USB Power Delivery physical layer.
+ */
 #ifndef PD_PHY_H
 #define PD_PHY_H
 

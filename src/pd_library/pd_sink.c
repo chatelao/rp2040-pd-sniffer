@@ -24,6 +24,11 @@ void sink_request_power(pd_sink_t* sink, uint32_t voltage_mv, uint32_t current_m
     sink->desired_current_ma = current_ma;
 }
 
+/**
+ * @brief Sends a GoodCRC message.
+ * @param sink A pointer to the sink to send the message for.
+ * @param message_id The message ID of the message to acknowledge.
+ */
 static void send_good_crc(pd_sink_t* sink, int message_id) {
     pd_packet_t packet;
     packet.header = pd_header_build(0, 0x1, false, false, 2, message_id);
@@ -31,6 +36,12 @@ static void send_good_crc(pd_sink_t* sink, int message_id) {
     pd_transmit_packet(sink->tx_sm, &packet);
 }
 
+/**
+ * @brief Sends a Request message.
+ * @param sink A pointer to the sink to send the message for.
+ * @param object_position The position of the desired PDO.
+ * @param operating_current_ma The desired operating current in milliamps.
+ */
 static void send_request(pd_sink_t* sink, int object_position, uint32_t operating_current_ma) {
     pd_packet_t packet;
     packet.header = pd_header_build(1, 0x2, false, false, 2, sink->message_id_counter);

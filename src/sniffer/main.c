@@ -4,6 +4,10 @@
 #include "hal/hal.h"
 
 // --- Packet Callback ---
+/**
+ * @brief Callback function for decoded packets.
+ * @param packet A pointer to the decoded packet.
+ */
 void on_packet_decoded(pd_packet_t *packet) {
     printf("--- PD Packet ---\n");
     printf("Header: 0x%04x\n", packet->header);

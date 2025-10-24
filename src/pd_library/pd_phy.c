@@ -2,7 +2,9 @@
 #include "pd_library.h"
 #include <string.h>
 
-// 5b/4b decoding table
+/**
+ * @brief 5b/4b decoding table.
+ */
 const uint8_t fiveb_to_fourb[32] = {
     0, 0, 0, 0, 0, 0, 0, 0,
     0, 1, 4, 5, 8, 9, 6, 7,
@@ -10,9 +12,9 @@ const uint8_t fiveb_to_fourb[32] = {
     0, 0, 0, 0, 14, 15, 0, 0,
 };
 
-#define K_CODE_SYNC1 0b11000
-#define K_CODE_SYNC2 0b10001
-#define K_CODE_EOP   0b01101
+#define K_CODE_SYNC1 0b11000 /**< K-code for Sync-1 */
+#define K_CODE_SYNC2 0b10001 /**< K-code for Sync-2 */
+#define K_CODE_EOP   0b01101 /**< K-code for End of Packet */
 
 void pd_phy_decoder_init(pd_phy_decoder_t* decoder) {
     memset(decoder, 0, sizeof(pd_phy_decoder_t));

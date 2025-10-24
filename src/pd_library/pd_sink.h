@@ -1,3 +1,7 @@
+/**
+ * @file pd_sink.h
+ * @brief USB Power Delivery sink.
+ */
 #ifndef PD_SINK_H
 #define PD_SINK_H
 
