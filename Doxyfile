@@ -1,0 +1,13 @@
+DOXYFILE_ENCODING      = UTF-8
+PROJECT_NAME           = "RP2040 USB-PD Sniffer"
+PROJECT_NUMBER         = 1.0
+OUTPUT_DIRECTORY       = docs
+INPUT                  = src
+RECURSIVE              = YES
+EXTRACT_ALL            = YES
+EXTRACT_STATIC         = YES
+GENERATE_LATEX         = NO
+SOURCE_BROWSER         = YES
+HAVE_DOT               = YES
+CALL_GRAPH             = YES
+CALLER_GRAPH           = YES

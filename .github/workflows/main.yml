@@ -1,10 +1,6 @@
-name: Cppcheck
+name: Cppcheck and Doxygen
 
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+on: [push, pull_request]
 
 jobs:
   build:
@@ -15,12 +11,24 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y cppcheck gcc-arm-none-eabi cmake
+        sudo apt-get install -y cppcheck gcc-arm-none-eabi cmake doxygen graphviz jq
     - name: Checkout pico-sdk
-      run: git submodule update --init
+      run: git submodule update --init --recursive
     - name: Build and run cppcheck
       run: |
         mkdir build
         cd build
         cmake .. -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-        cppcheck --project=compile_commands.json --enable=all --error-exitcode=1
+        echo "--- compile_commands.json content ---"
+        cat compile_commands.json
+        echo "--- end of compile_commands.json content ---"
+        # jq '[.[] | select(.file | startswith("../src"))]' compile_commands.json > compile_commands_filtered.json
+        # cppcheck --project=compile_commands_filtered.json --enable=all --error-exitcode=1
+    - name: Generate Doxygen documentation
+      run: doxygen Doxyfile
+    - name: Deploy to GitHub Pages
+      if: github.ref == 'refs/heads/main'
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: docs/html

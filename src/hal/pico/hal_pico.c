@@ -1,4 +1,6 @@
 #include "hal/hal.h"
+#include "pd_phy.h"
+#include <string.h>
 #ifndef NATIVE_BUILD
 #include "pico/stdlib.h"
 #include "hardware/dma.h"
@@ -6,7 +8,8 @@
 #include "pd_receiver.pio.h"
 #include "pd_transmitter.pio.h"
 #endif
-#include "pd_library.h"
+
+struct pd_packet_s;
 
 // GPIO
 void hal_gpio_init(unsigned int pin) {
@@ -115,6 +118,121 @@ uint32_t hal_crc32(const uint8_t *data, size_t len) {
 #ifndef NATIVE_BUILD
 static PIO pio_instances[2] = {pio0, pio1};
 #endif
+
+#define NUM_PORTS 2
+#define DMA_BUFFER_SIZE_PER_PORT 1024
+
+typedef struct {
+    uint32_t dma_buffer[DMA_BUFFER_SIZE_PER_PORT];
+#ifndef NATIVE_BUILD
+    PIO pio;
+#endif
+    unsigned int sm_rx;
+    unsigned int sm_tx;
+    unsigned int dma_channel;
+    volatile uint32_t write_pos;
+    volatile uint32_t read_pos;
+    pd_phy_decoder_t decoder;
+} port_t;
+
+static port_t ports[NUM_PORTS];
+
+#ifndef NATIVE_BUILD
+static void dma_irq_handler_port0() {
+    if (dma_channel_get_irq0_status(ports[0].dma_channel)) {
+        dma_channel_acknowledge_irq0(ports[0].dma_channel);
+        ports[0].write_pos = (ports[0].write_pos + 1) % DMA_BUFFER_SIZE_PER_PORT;
+        dma_channel_set_write_addr(ports[0].dma_channel, &ports[0].dma_buffer[ports[0].write_pos], true);
+    }
+}
+
+static void dma_irq_handler_port1() {
+    if (dma_channel_get_irq0_status(ports[1].dma_channel)) {
+        dma_channel_acknowledge_irq0(ports[1].dma_channel);
+        ports[1].write_pos = (ports[1].write_pos + 1) % DMA_BUFFER_SIZE_PER_PORT;
+        dma_channel_set_write_addr(ports[1].dma_channel, &ports[1].dma_buffer[ports[1].write_pos], true);
+    }
+}
+
+static void (*dma_irq_handlers[NUM_PORTS])() = {
+    dma_irq_handler_port0,
+    dma_irq_handler_port1
+};
+#endif
+
+unsigned int hal_init(unsigned int port) {
+#ifndef NATIVE_BUILD
+    ports[port].pio = (port == 0) ? pio0 : pio1;
+    ports[port].sm_rx = pio_claim_unused_sm(ports[port].pio, true);
+    ports[port].sm_tx = pio_claim_unused_sm(ports[port].pio, true);
+    ports[port].dma_channel = dma_claim_unused_channel(true);
+
+    // PIO RX
+    uint offset_rx = pio_add_program(ports[port].pio, &pd_receiver_program);
+    pio_sm_config c_rx = pd_receiver_program_get_default_config(offset_rx);
+    sm_config_set_in_pins(&c_rx, port * 2); // CC1 for port 0, CC2 for port 1 - very simplified
+    sm_config_set_jmp_pin(&c_rx, port * 2);
+    sm_config_set_in_shift(&c_rx, false, true, 32);
+    sm_config_set_fifo_join(&c_rx, PIO_FIFO_JOIN_RX);
+    pio_sm_init(ports[port].pio, ports[port].sm_rx, offset_rx, &c_rx);
+    pio_sm_set_enabled(ports[port].pio, ports[port].sm_rx, true);
+
+    // PIO TX
+    uint offset_tx = pio_add_program(ports[port].pio, &pd_transmitter_program);
+    pio_sm_config c_tx = pd_transmitter_program_get_default_config(offset_tx);
+    sm_config_set_out_pins(&c_tx, port * 2, 1);
+    sm_config_set_sideset_pins(&c_tx, port * 2);
+    sm_config_set_out_shift(&c_tx, false, true, 32);
+    sm_config_set_fifo_join(&c_tx, PIO_FIFO_JOIN_TX);
+    pio_sm_init(ports[port].pio, ports[port].sm_tx, offset_tx, &c_tx);
+    pio_sm_set_enabled(ports[port].pio, ports[port].sm_tx, true);
+
+    // DMA
+    dma_channel_config dma_config = dma_channel_get_default_config(ports[port].dma_channel);
+    channel_config_set_read_increment(&dma_config, false);
+    channel_config_set_write_increment(&dma_config, true);
+    channel_config_set_dreq(&dma_config, pio_get_dreq(ports[port].pio, ports[port].sm_rx, false));
+    dma_channel_configure(
+        ports[port].dma_channel,
+        &dma_config,
+        ports[port].dma_buffer,
+        &ports[port].pio->rxf[ports[port].sm_rx],
+        DMA_BUFFER_SIZE_PER_PORT,
+        false
+    );
+
+    dma_channel_set_irq0_enabled(ports[port].dma_channel, true);
+    irq_set_exclusive_handler(DMA_IRQ_0 + port, dma_irq_handlers[port]);
+    irq_set_enabled(DMA_IRQ_0 + port, true);
+    dma_channel_start(ports[port].dma_channel);
+    pd_phy_decoder_init(&ports[port].decoder);
+#endif
+    return ports[port].sm_tx;
+}
+
+static pd_packet_t packet_buffer[NUM_PORTS];
+static volatile bool packet_received[NUM_PORTS];
+
+static void packet_callback(void* context, pd_packet_t* packet) {
+    uintptr_t port = (uintptr_t)context;
+    memcpy(&packet_buffer[port], packet, sizeof(pd_packet_t));
+    packet_received[port] = true;
+}
+
+bool hal_get_packet(unsigned int port, struct pd_packet_s* packet) {
+    if (ports[port].read_pos != ports[port].write_pos) {
+        uint32_t data[1];
+        data[0] = ports[port].dma_buffer[ports[port].read_pos];
+        ports[port].read_pos = (ports[port].read_pos + 1) % DMA_BUFFER_SIZE_PER_PORT;
+        pd_phy_decode_stream(&ports[port].decoder, data, 1, packet_callback, (uintptr_t)port);
+    }
+    if (packet_received[port]) {
+        memcpy(packet, &packet_buffer[port], sizeof(pd_packet_t));
+        packet_received[port] = false;
+        return true;
+    }
+    return false;
+}
 
 void hal_pio_init(void) {
     // No-op for now
