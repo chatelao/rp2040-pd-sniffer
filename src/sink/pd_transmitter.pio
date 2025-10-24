@@ -5,24 +5,15 @@
 ;
 
 .program pd_transmitter
+.side_set 1 opt
+
+; This PIO program transmits a 32-bit word, one bit at a time, at a
+; rate of 10MHz. The data is shifted out of the OSR, LSB first.
 
 .wrap_target
-    out pins, 1
+    pull                ; Pull a 32-bit word from the TX FIFO
+    set x, 31           ; Initialize loop counter
+bit_loop:
+    out pins, 1         ; Shift out one bit of data
+    jmp x-- bit_loop    ; Loop 32 times
 .wrap
-
-% c-sdk {
-#include "hardware/clocks.h"
-
-static inline void pd_transmitter_program_init(PIO pio, uint sm, uint offset, uint pin) {
-    pio_sm_config c = pio_get_default_sm_config();
-    sm_config_set_wrap(&c, offset, offset);
-    sm_config_set_out_pins(&c, pin, 1);
-    sm_config_set_out_shift(&c, false, true, 32);
-    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
-    float div = (float)clock_get_hz(clk_sys) / (300000 * 2);
-    sm_config_set_clkdiv(&c, div);
-    pio_sm_init(pio, sm, offset, &c);
-    pio_gpio_init(pio, pin);
-    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
-}
-%}

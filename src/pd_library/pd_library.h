@@ -1,11 +1,12 @@
 #ifndef PD_LIBRARY_H
 #define PD_LIBRARY_H
 
+#include "pd_common.h"
+
 #ifdef NATIVE_BUILD
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-uint64_t time_us_64(void) __attribute__((weak));
 #else
 #include "pico/stdlib.h"
 #include "hardware/pio.h"
@@ -28,7 +29,6 @@ void bmc_decoder_feed(uint32_t raw_data, packet_callback_t callback);
 #endif
 
 uint32_t pd_crc32(const uint8_t *data, size_t len);
-void pd_decode_packet(const uint32_t* captured_data, uint32_t data_len, pd_packet_t* packet);
 void pd_encode_packet(const pd_packet_t* packet, uint32_t* encoded_data, size_t* encoded_len);
 
 void pd_transmit_packet(unsigned int sm, const pd_packet_t* packet);

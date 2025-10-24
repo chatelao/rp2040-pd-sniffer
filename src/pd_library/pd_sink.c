@@ -60,7 +60,7 @@ void sink_tick(pd_sink_t* sink) {
     }
 }
 
-void sink_handle_packet(pd_sink_t* sink, pd_packet_t* packet) {
+void sink_handle_packet(pd_sink_t* sink, const pd_packet_t* packet) {
     uint16_t message_type = packet->header & 0x1F;
     uint8_t message_id = (packet->header >> 9) & 0x7;
 

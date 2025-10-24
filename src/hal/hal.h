@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+struct pd_packet_s;
+
 // GPIO
 void hal_gpio_init(unsigned int pin);
 void hal_gpio_set_dir(unsigned int pin, bool out);
@@ -23,5 +25,9 @@ void hal_pio_init(void);
 void hal_pio_sm_init(unsigned int sm, unsigned int pin);
 void hal_pio_sm_put(unsigned int sm, uint32_t data);
 uint32_t hal_pio_sm_get(unsigned int sm);
+
+// High level PD functions
+unsigned int hal_init(unsigned int port);
+bool hal_get_packet(unsigned int port, struct pd_packet_s* packet);
 
 #endif // HAL_H

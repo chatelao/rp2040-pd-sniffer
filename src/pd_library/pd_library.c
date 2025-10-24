@@ -41,14 +41,6 @@ const uint8_t fourb_to_fiveb[16] = {
     0b11010, 0b11011, 0b11100, 0b11101,
 };
 
-// 5b/4b decoding table
-const uint8_t fiveb_to_fourb[32] = {
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 1, 4, 5, 8, 9, 6, 7,
-    0, 0, 2, 3, 10, 11, 12, 13,
-    0, 0, 0, 0, 14, 15, 0, 0,
-};
-
 static uint32_t crc_table[256];
 static bool crc_table_generated = false;
 
@@ -82,91 +74,6 @@ uint32_t pd_crc32(const uint8_t *data, size_t len) {
 #define K_CODE_SYNC1 0b11000
 #define K_CODE_SYNC2 0b10001
 #define K_CODE_EOP   0b01101
-
-void pd_decode_packet(const uint32_t* captured_data, uint32_t data_len, pd_packet_t* packet) {
-    packet->valid = false;
-
-    enum { STATE_SOP, STATE_PACKET } decoder_state = STATE_SOP;
-
-    uint64_t shift_reg = 0;
-    int bit_count = 0;
-
-    pd_packet_t current_packet;
-    uint8_t packet_buffer[34];
-    int quintet_count = 0;
-    enum { PKT_STATE_HEADER, PKT_STATE_DATA, PKT_STATE_CRC } packet_state = PKT_STATE_HEADER;
-
-    for (uint32_t i = 0; i < data_len; i++) {
-        uint32_t word = captured_data[i];
-        for (int j = 0; j < 32; j++) {
-            int bit = (word >> (31 - j)) & 1;
-            shift_reg = (shift_reg << 1) | bit;
-
-            switch (decoder_state) {
-                case STATE_SOP:
-                    if ((shift_reg & 0xFFFFF) == ((K_CODE_SYNC1 << 15) | (K_CODE_SYNC1 << 10) | (K_CODE_SYNC2 << 5) | K_CODE_SYNC2)) {
-                        decoder_state = STATE_PACKET;
-                        packet_state = PKT_STATE_HEADER;
-                        bit_count = 0;
-                        quintet_count = 0;
-                        memset(&current_packet, 0, sizeof(current_packet));
-                        memset(packet_buffer, 0, sizeof(packet_buffer));
-                    }
-                    break;
-
-                case STATE_PACKET:
-                    bit_count++;
-                    if (bit_count == 5) {
-                        bit_count = 0;
-                        uint8_t symbol = shift_reg & 0x1F;
-
-                        if (symbol == K_CODE_EOP) {
-                            int expected_quintets = 4 + current_packet.num_data_objects * 8 + 8;
-                            if (quintet_count == expected_quintets) {
-                                // Finalize packet
-                                memcpy(&current_packet.header, packet_buffer, 2);
-                                memcpy(current_packet.data, packet_buffer + 2, current_packet.num_data_objects * 4);
-                                memcpy(&current_packet.crc, packet_buffer + 2 + current_packet.num_data_objects * 4, 4);
-
-                                uint8_t crc_data[2 + MAX_DATA_OBJECTS * 4];
-                                memcpy(crc_data, &current_packet.header, 2);
-                                if (current_packet.num_data_objects > 0) {
-                                   memcpy(crc_data + 2, current_packet.data, current_packet.num_data_objects * 4);
-                                }
-                                uint32_t calculated_crc = pd_crc32(crc_data, 2 + current_packet.num_data_objects * 4);
-
-                                if (calculated_crc == current_packet.crc) {
-                                    *packet = current_packet;
-                                    packet->valid = true;
-                                    return;
-                                }
-                            }
-                            decoder_state = STATE_SOP;
-                        } else {
-                            uint8_t nybble = fiveb_to_fourb[symbol];
-                            int byte_pos = quintet_count / 2;
-                            if (quintet_count < sizeof(packet_buffer) * 2) {
-                                if (quintet_count % 2 == 0) packet_buffer[byte_pos] = nybble;
-                                else packet_buffer[byte_pos] |= (nybble << 4);
-                            }
-                            quintet_count++;
-
-                            if (packet_state == PKT_STATE_HEADER && quintet_count == 4) {
-                                memcpy(&current_packet.header, packet_buffer, 2);
-                                current_packet.num_data_objects = (current_packet.header >> 12) & 0x7;
-                                if (current_packet.num_data_objects > 7) current_packet.num_data_objects = 0;
-                                packet_state = (current_packet.num_data_objects == 0) ? PKT_STATE_CRC : PKT_STATE_DATA;
-                            } else if (packet_state == PKT_STATE_DATA && quintet_count == 4 + current_packet.num_data_objects * 8) {
-                                packet_state = PKT_STATE_CRC;
-                            }
-                        }
-                    }
-                    break;
-            }
-        }
-    }
-}
-
 
 static void append_4b5b(uint32_t* stream, int* stream_len, uint16_t data) {
     stream[*stream_len] = fourb_to_fiveb[(data >> 0) & 0xF];

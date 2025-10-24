@@ -32,7 +32,7 @@ typedef struct {
 
 void sink_init(pd_sink_t* sink, unsigned int sm);
 void sink_tick(pd_sink_t* sink);
-void sink_handle_packet(pd_sink_t* sink, pd_packet_t* packet);
+void sink_handle_packet(pd_sink_t* sink, const pd_packet_t* packet);
 void sink_request_power(pd_sink_t* sink, uint32_t voltage_mv, uint32_t current_ma);
 
 #endif // PD_SINK_H
