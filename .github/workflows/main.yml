@@ -13,7 +13,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y cppcheck gcc-arm-none-eabi cmake doxygen graphviz
     - name: Checkout pico-sdk
-      run: git submodule update --init
+      run: git submodule update --init --recursive
     - name: Build and run cppcheck
       run: |
         mkdir build
