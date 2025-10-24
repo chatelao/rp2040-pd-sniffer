@@ -1,3 +1,7 @@
+/**
+ * @file hal.h
+ * @brief Hardware Abstraction Layer for USB Power Delivery.
+ */
 #ifndef HAL_H
 #define HAL_H
 

@@ -7,6 +7,10 @@
 static pd_sink_t sink0;
 static pd_sink_t sink1;
 
+/**
+ * @brief Injects a Vendor Defined Message (VDM) into the USB-PD bus.
+ * @param sm The state machine to use for transmission.
+ */
 static void inject_vdm(unsigned int sm) {
     pd_packet_t packet;
     packet.header = pd_header_build(1, 0xF, true, false, 2, 0);

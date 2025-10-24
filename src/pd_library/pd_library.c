@@ -33,7 +33,9 @@ void bmc_decoder_feed(uint32_t raw_data, packet_callback_t callback) {
 }
 #endif
 
-// 4b/5b encoding table
+/**
+ * @brief 4b/5b encoding table.
+ */
 const uint8_t fourb_to_fiveb[16] = {
     0b11110, 0b01001, 0b10100, 0b10101,
     0b01010, 0b01011, 0b01110, 0b01111,
@@ -41,9 +43,15 @@ const uint8_t fourb_to_fiveb[16] = {
     0b11010, 0b11011, 0b11100, 0b11101,
 };
 
+/**
+ * @brief CRC32 table.
+ */
 static uint32_t crc_table[256];
 static bool crc_table_generated = false;
 
+/**
+ * @brief Generates the CRC32 table.
+ */
 static void generate_crc_table(void) {
     for (uint32_t i = 0; i < 256; i++) {
         uint32_t c = i;
@@ -75,6 +83,12 @@ uint32_t pd_crc32(const uint8_t *data, size_t len) {
 #define K_CODE_SYNC2 0b10001
 #define K_CODE_EOP   0b01101
 
+/**
+ * @brief Appends a 16-bit value to a 4b/5b encoded stream.
+ * @param stream The stream to append to.
+ * @param stream_len A pointer to the length of the stream.
+ * @param data The data to append.
+ */
 static void append_4b5b(uint32_t* stream, int* stream_len, uint16_t data) {
     stream[*stream_len] = fourb_to_fiveb[(data >> 0) & 0xF];
     stream[*stream_len + 1] = fourb_to_fiveb[(data >> 4) & 0xF];
@@ -83,6 +97,12 @@ static void append_4b5b(uint32_t* stream, int* stream_len, uint16_t data) {
     *stream_len += 4;
 }
 
+/**
+ * @brief Appends a 32-bit value to a 4b/5b encoded stream.
+ * @param stream The stream to append to.
+ * @param stream_len A pointer to the length of the stream.
+ * @param data The data to append.
+ */
 static void append_4b5b_u32(uint32_t* stream, int* stream_len, uint32_t data) {
     append_4b5b(stream, stream_len, (data >> 0) & 0xFFFF);
     append_4b5b(stream, stream_len, (data >> 16) & 0xFFFF);

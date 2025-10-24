@@ -43,6 +43,9 @@ static volatile uint32_t write_pos = 0;
 static volatile uint32_t read_pos = 0;
 
 #ifndef NATIVE_BUILD
+/**
+ * @brief DMA interrupt handler.
+ */
 static void dma_irq_handler() {
     if (dma_channel_get_irq0_status(dma_channel)) {
         dma_channel_acknowledge_irq0(dma_channel);
@@ -122,8 +125,11 @@ static PIO pio_instances[2] = {pio0, pio1};
 #define NUM_PORTS 2
 #define DMA_BUFFER_SIZE_PER_PORT 1024
 
+/**
+ * @brief Represents a USB-PD port.
+ */
 typedef struct {
-    uint32_t dma_buffer[DMA_BUFFER_SIZE_PER_PORT];
+    uint32_t dma_buffer[DMA_BUFFER_SIZE_PER_PORT];  /**< The DMA buffer for this port. */
 #ifndef NATIVE_BUILD
     PIO pio;
 #endif
@@ -138,6 +144,9 @@ typedef struct {
 static port_t ports[NUM_PORTS];
 
 #ifndef NATIVE_BUILD
+/**
+ * @brief DMA interrupt handler for port 0.
+ */
 static void dma_irq_handler_port0() {
     if (dma_channel_get_irq0_status(ports[0].dma_channel)) {
         dma_channel_acknowledge_irq0(ports[0].dma_channel);
@@ -146,6 +155,9 @@ static void dma_irq_handler_port0() {
     }
 }
 
+/**
+ * @brief DMA interrupt handler for port 1.
+ */
 static void dma_irq_handler_port1() {
     if (dma_channel_get_irq0_status(ports[1].dma_channel)) {
         dma_channel_acknowledge_irq0(ports[1].dma_channel);
@@ -213,6 +225,11 @@ unsigned int hal_init(unsigned int port) {
 static pd_packet_t packet_buffer[NUM_PORTS];
 static volatile bool packet_received[NUM_PORTS];
 
+/**
+ * @brief Callback function for decoded packets.
+ * @param context The context pointer (the port number).
+ * @param packet A pointer to the decoded packet.
+ */
 static void packet_callback(void* context, pd_packet_t* packet) {
     uintptr_t port = (uintptr_t)context;
     memcpy(&packet_buffer[port], packet, sizeof(pd_packet_t));

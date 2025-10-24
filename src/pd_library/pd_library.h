@@ -1,3 +1,7 @@
+/**
+ * @file pd_library.h
+ * @brief Shared library for USB Power Delivery.
+ */
 #ifndef PD_LIBRARY_H
 #define PD_LIBRARY_H
 
